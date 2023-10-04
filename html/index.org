@@ -1,0 +1,91 @@
+#+TITLE: Statistical Models 2023
+#+AUTHOR: Dale Barr
+#+options: html-link-use-abs-url:nil html-postamble:auto
+#+options: html-preamble:t html-scripts:t html-style:t
+#+options: html5-fancy:nil tex:t ^:nil num:nil toc:nil
+#+html_doctype: xhtml-strict
+#+html_container: div
+#+description:
+#+keywords:
+#+html_link_home:
+#+html_link_up:
+#+html_mathjax:
+#+html_head:
+#+html_head_extra:
+#+subtitle:
+#+infojs_opt:
+#+creator: <a href="https://www.gnu.org/software/emacs/">Emacs</a> 26.3 (<a href="https://orgmode.org">Org</a> mode 9.3)
+#+latex_header:
+#+PROPERTY: header-args:R :session *R*
+
+* Course description
+
+In this course, students will learn about planning, conducting, and analysing psychological experiments using the R statistical programming environment. The focus is on developing programming and analysis skills that will enable a transparent and reproducible analysis workflow. 
+
+** Aims
+
+- To provide an understanding of the basic statistics appropriate to the analysis of Psychological experiments.
+- To learn how to produce reproducible scripts and reports using R and RMarkdown
+
+** Intended Learning Outcomes
+
+By the end of this course students will be able to:
+
+- Integrate knowledge about study design and statistics to formulate and estimate the General Linear Model (GLM) appropriate to the various types of study designs encountered in psychology, especially studies with repeated observations.
+- Visualise and interpret various effects (including interactions) in multi-way designs.
+- Estimate linear mixed-effects models and describe their relation to traditional techniques such as ANOVA and multiple regression.
+- Perform logistic regression and explain and interpret the statistical output.
+- Create reproducible data analysis scripts and reports within the R statistical programming environment.
+
+* Textbook
+
+Barr, Dale J. (2023). /Learning statistical models through simulation in R: An interactive textbook./ Version 1.1-1. Retrieved from [[https://psyteachr.github.io/stat-models]].
+
+* Schedule
+
+#+begin_src R :exports results :results value :colnames yes
+  library("dplyr")
+  library("tibble")
+
+  tribble(~Week, ~Date, ~Time, ~Topic, ~Slides,
+	  1L, "Th Sep 21", "14:00-15:00",  "The General Linear Model", "[[file:slides/01_introduction/index.html][html]] [[file:slides/01_introduction/01_introduction.pdf][pdf]]",
+	  2L, "Th Sep 28", "14:00-15:00",  "Correlation and Regression", "[[file:slides/02_correlation/index.html][html]] [[file:slides/02_correlation/02_correlation.pdf][pdf]]",
+	  3L, "Th Oct 05", "14:00-15:00",  "Multiple Regression", "[[file:slides/03_multiple-regression/index.html][html]] [[file:slides/03_multiple-regression/03_multiple-regression.pdf][pdf]]",
+	  4L, "Th Oct 12", "14:00-15:00",  "Interactions", "",
+	  5L, "Th Oct 19", "14:00-15:00",  "Linear mixed-effects modeling 1", "",
+	  6L, "---", "---",                "*READING WEEK*", "",
+	  7L, "Th Nov 02", "14:00-15:00",  "Linear mixed-effects modeling 2", "",
+	  8L, "Th Nov 09", "14:00-15:00",  "Linear mixed-effects modeling 3", "",
+	  9L, "Th Nov 16", "14:00-15:00",  "Generalized Linear Models", "",
+	  10L, "Th Nov 23", "14:00-15:00", "Wrap Up", "")
+#+end_src
+
+#+RESULTS:
+| Week | Date      |        Time | Topic                           | Slides   |
+|------+-----------+-------------+---------------------------------+----------|
+|    1 | Th Sep 21 | 14:00-15:00 | The General Linear Model        | [[file:slides/01_introduction/index.html][html]] [[file:slides/01_introduction/01_introduction.pdf][pdf]] |
+|    2 | Th Sep 28 | 14:00-15:00 | Correlation and Regression      | [[file:slides/02_correlation/index.html][html]] [[file:slides/02_correlation/02_correlation.pdf][pdf]] |
+|    3 | Th Oct 05 | 14:00-15:00 | Multiple Regression             | [[file:slides/03_multiple-regression/index.html][html]] [[file:slides/03_multiple-regression/03_multiple-regression.pdf][pdf]] |
+|    4 | Th Oct 12 | 14:00-15:00 | Interactions                    |          |
+|    5 | Th Oct 19 | 14:00-15:00 | Linear mixed-effects modeling 1 |          |
+|    6 | ---       |         --- | *READING WEEK*                  |          |
+|    7 | Th Nov 02 | 14:00-15:00 | Linear mixed-effects modeling 2 |          |
+|    8 | Th Nov 09 | 14:00-15:00 | Linear mixed-effects modeling 3 |          |
+|    9 | Th Nov 16 | 14:00-15:00 | Generalized Linear Models       |          |
+|   10 | Th Nov 23 | 14:00-15:00 | Wrap Up                         |          |
+
+* Assessment
+
+** Weekly formative assessment
+
+Each week you will be assigned formative coursework that will allow you to build your data analysis skills. This coursework is not assessed, but you will receive feedback in the form of problem solutions. You are encouraged to attend an online review session each Tuesday from 10-11am, where you can see a walkthrough and ask questions (see the course Moodle page for the link).
+
+** Final exam
+
+Your final grade for the course is based on your final exam. See the Moodle page for information on the format of the assessment.
+
+* Getting help
+
+If you have a question about course content, please ask it on the course channel on Microsoft Teams, so that others may benefit. Otherwise, contact me by email or visit me during my office hours, Tuesdays 15:30-17:00 local UK time.
+
+For other contact information, please consult the [[https://moodle.gla.ac.uk/course/view.php?id=37390][course page on Moodle]].

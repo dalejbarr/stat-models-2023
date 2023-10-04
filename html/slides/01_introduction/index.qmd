@@ -1,0 +1,234 @@
+---
+title: "Statistical Models"
+author: "Dale Barr"
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    theme: dark
+    code-line-numbers: false
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+library("tidyverse")
+library("lme4")
+
+source("../src/theme_jetblack.R")
+```
+
+## Statistical (& "Scientific") Models
+
+- Semester One: 
+  *How do I translate a study design into a statistical model for analysis?*
+
+- Semester Two: 
+  *How do I develop an idea and translate it into a study design?*
+
+## The approach
+
+We want our analyses to be:
+
+1. reproducible
+2. transparent
+3. generalizable
+4. flexible
+
+::: {.notes}
+- cooking analogy
+- punching buttons on a microwave (pre-packaged food)
+- versus taking fresh ingredients and improvising something
+:::
+
+## 
+
+![](studyres-com.png)
+
+## Recipes encourage poor practice
+
+> "If all you have is a hammer, everything looks like a nail"
+
+- violation of assumptions
+  - especially: independence
+- discretization of predictors
+- treating categorical data as continuous
+- over-aggregation
+- mindless statistics
+
+## What do they have in common?
+
+:::: {.columns}
+
+::: {.column width="60%"}
+- t-test
+- correlation & regression
+- multiple regression
+- analysis of variance
+- mixed-effects modeling
+:::
+
+::: {.column width="40%" .fragment}
+- All are special cases of the General Linear Model (GLM).
+:::
+
+::::
+
+## GLM approach
+
+1. Define a mathematical model representing the processes that are
+   assumed to give rise to the data
+2. Estimate the parameters of the model
+3. Validate the model
+4. Transparently report what you did
+   - share your code
+   - anonymize and share your data (ethics permitting)
+
+## Models are just... models
+
+A statistical model is a *simplification* and *idealization* of reality that captures our key assumptions about the processes underlying data (the *data generating process* or DGP).
+
+## Importance of data simulation
+
+- Data simulation is a *litmus test* of understanding a statistical approach.
+  - Can you generate simulated data that would meet the assumptions of the approach?
+    - If not, *you don't understand it (yet!)*
+
+- Being able to specify the DGP is key to study planning (power)
+
+## Example: Parent reflexes
+
+Does being the parent of a toddler sharpen your reflexes?
+
+- simple response time to a flashing light
+- dependent (response) variable: mean RT for each parent
+
+## Simulating data
+
+```{r}
+set.seed(2021) # RNG seed: arbitrary integer value
+parents <- rnorm(n = 50, mean = 480, sd = 40)
+
+parents
+```
+
+## Control group
+
+```{r}
+set.seed(2021) # RNG seed: arbitrary integer value
+parents <- rnorm(n = 50, mean = 480, sd = 40)
+
+parents
+control <- rnorm(n = 50, mean = 500, sd = 40)
+
+control
+```
+
+## $t$-test
+
+```{r}
+t.test(parents, control, var.equal = TRUE)
+```
+
+## Analysis of variance (ANOVA)
+
+```{r}
+dat <- tibble(
+  group = rep(c("parent", "control"), 
+              c(length(parents), length(control))),
+  rt = c(parents, control))
+
+dat
+```
+
+--- 
+
+```{r}
+summary(aov(rt ~ group, dat))    
+```
+
+## Regression
+
+$$Y_i = \beta_0 + \beta_1 X_i + e_i$$
+
+$$e_i \sim N(0, \sigma^2)$$
+
+---
+
+```{r}
+summary(lm(rt ~ group, dat))
+```
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app(url = "https://rstudio-connect.psy.gla.ac.uk/GLM", height = "700px")
+```
+
+## Single- vs Multi-level data
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: false
+tibble(sub = 1:6,
+       A = rep(c("A1", "A2"), each = 3),
+       Y = round(rnorm(6, 800, 100))) |>
+  knitr::kable()
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: false
+tibble(sub = rep(1:2, each = 3),
+       stim = rep(LETTERS[1:3], 2),
+       A = rep(c("A1", "A2"), each = 3),
+       Y = round(rnorm(6, 800, 100))) |>
+  knitr::kable()
+```
+
+:::
+
+::::
+
+## Issues with multi-level data
+
+- GLMs assume independence of residuals
+- Observations within a cluster (unit) are not independent
+- Any sources of non-independence must be modeled (we'll learn this later!) or aggregated away
+- Typical consequence of failing to do so: High false positives
+
+## Regression: Killer App
+
+| technique        | t-test | ANOVA | regression |
+|:-----------------|-------:|------:|-----------:|
+| Categorical IVs  | ✓      | ✓     | ✓          |
+| Continuous DVs   | ✓      | ✓     | ✓          |
+| Continuous IVs   |        | -     | ✓          |
+| Multi-level data | -      | -     | ✓          |
+| Categorical DVs  |        |       | ✓          |
+| Unbalanced data  | -      | -     | ✓          |
+| >1 sampling unit |        |       | ✓          |
+
+## Four functions to rule them all
+
+1. Is the data single- or multi-level?
+2. Is the response continuous or discrete?
+3. How are the observations distributed?
+
+| structure | response  | distribution | R function      |
+|:----------|:----------|:-------------|:----------------|
+| single    | cont      | normal       | `base::lm()`    |
+| single    | cont/disc | various      | `base::glm()`   |
+| multi     | cont      | normal       | `lme4::lmer()`  |
+| multi     | cont/disc | various      | `lme4::glmer()` |

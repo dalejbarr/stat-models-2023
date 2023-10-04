@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-10-04 Wed 13:20 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Statistical Models 2023</title>
+<meta name="author" content="Dale Barr" />
+<meta name="generator" content="Org Mode" />
+<style>
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+// @license-end
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Statistical Models 2023</h1>
+
+<div id="outline-container-orgdc2ecc9" class="outline-2">
+<h2 id="orgdc2ecc9">Course description</h2>
+<div class="outline-text-2" id="text-orgdc2ecc9">
+<p>
+In this course, students will learn about planning, conducting, and analysing psychological experiments using the R statistical programming environment. The focus is on developing programming and analysis skills that will enable a transparent and reproducible analysis workflow. 
+</p>
+</div>
+
+<div id="outline-container-org5ced834" class="outline-3">
+<h3 id="org5ced834">Aims</h3>
+<div class="outline-text-3" id="text-org5ced834">
+<ul class="org-ul">
+<li>To provide an understanding of the basic statistics appropriate to the analysis of Psychological experiments.</li>
+<li>To learn how to produce reproducible scripts and reports using R and RMarkdown</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orge86c8f9" class="outline-3">
+<h3 id="orge86c8f9">Intended Learning Outcomes</h3>
+<div class="outline-text-3" id="text-orge86c8f9">
+<p>
+By the end of this course students will be able to:
+</p>
+
+<ul class="org-ul">
+<li>Integrate knowledge about study design and statistics to formulate and estimate the General Linear Model (GLM) appropriate to the various types of study designs encountered in psychology, especially studies with repeated observations.</li>
+<li>Visualise and interpret various effects (including interactions) in multi-way designs.</li>
+<li>Estimate linear mixed-effects models and describe their relation to traditional techniques such as ANOVA and multiple regression.</li>
+<li>Perform logistic regression and explain and interpret the statistical output.</li>
+<li>Create reproducible data analysis scripts and reports within the R statistical programming environment.</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org13d8391" class="outline-2">
+<h2 id="org13d8391">Textbook</h2>
+<div class="outline-text-2" id="text-org13d8391">
+<p>
+Barr, Dale J. (2023). <i>Learning statistical models through simulation in R: An interactive textbook.</i> Version 1.1-1. Retrieved from <a href="https://psyteachr.github.io/stat-models">https://psyteachr.github.io/stat-models</a>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org65caa6f" class="outline-2">
+<h2 id="org65caa6f">Schedule</h2>
+<div class="outline-text-2" id="text-org65caa6f">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">Week</th>
+<th scope="col" class="org-left">Date</th>
+<th scope="col" class="org-right">Time</th>
+<th scope="col" class="org-left">Topic</th>
+<th scope="col" class="org-left">Slides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">1</td>
+<td class="org-left">Th Sep 21</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">The General Linear Model</td>
+<td class="org-left"><a href="slides/01_introduction/index.html">html</a> <a href="slides/01_introduction/01_introduction.pdf">pdf</a></td>
+</tr>
+
+<tr>
+<td class="org-right">2</td>
+<td class="org-left">Th Sep 28</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Correlation and Regression</td>
+<td class="org-left"><a href="slides/02_correlation/index.html">html</a> <a href="slides/02_correlation/02_correlation.pdf">pdf</a></td>
+</tr>
+
+<tr>
+<td class="org-right">3</td>
+<td class="org-left">Th Oct 05</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Multiple Regression</td>
+<td class="org-left"><a href="slides/03_multiple-regression/index.html">html</a> <a href="slides/03_multiple-regression/03_multiple-regression.pdf">pdf</a></td>
+</tr>
+
+<tr>
+<td class="org-right">4</td>
+<td class="org-left">Th Oct 12</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Interactions</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-left">Th Oct 19</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Linear mixed-effects modeling 1</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-left">---</td>
+<td class="org-right">---</td>
+<td class="org-left"><b>READING WEEK</b></td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">7</td>
+<td class="org-left">Th Nov 02</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Linear mixed-effects modeling 2</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-left">Th Nov 09</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Linear mixed-effects modeling 3</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">9</td>
+<td class="org-left">Th Nov 16</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Generalized Linear Models</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">10</td>
+<td class="org-left">Th Nov 23</td>
+<td class="org-right">14:00-15:00</td>
+<td class="org-left">Wrap Up</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-org5bd6720" class="outline-2">
+<h2 id="org5bd6720">Assessment</h2>
+<div class="outline-text-2" id="text-org5bd6720">
+</div>
+<div id="outline-container-org7354cc5" class="outline-3">
+<h3 id="org7354cc5">Weekly formative assessment</h3>
+<div class="outline-text-3" id="text-org7354cc5">
+<p>
+Each week you will be assigned formative coursework that will allow you to build your data analysis skills. This coursework is not assessed, but you will receive feedback in the form of problem solutions. You are encouraged to attend an online review session each Tuesday from 10-11am, where you can see a walkthrough and ask questions (see the course Moodle page for the link).
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0de4acc" class="outline-3">
+<h3 id="org0de4acc">Final exam</h3>
+<div class="outline-text-3" id="text-org0de4acc">
+<p>
+Your final grade for the course is based on your final exam. See the Moodle page for information on the format of the assessment.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8e823a7" class="outline-2">
+<h2 id="org8e823a7">Getting help</h2>
+<div class="outline-text-2" id="text-org8e823a7">
+<p>
+If you have a question about course content, please ask it on the course channel on Microsoft Teams, so that others may benefit. Otherwise, contact me by email or visit me during my office hours, Tuesdays 15:30-17:00 local UK time.
+</p>
+
+<p>
+For other contact information, please consult the <a href="https://moodle.gla.ac.uk/course/view.php?id=37390">course page on Moodle</a>.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Dale Barr</p>
+<p class="date">Created: 2023-10-04 Wed 13:20</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

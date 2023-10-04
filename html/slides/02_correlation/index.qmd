@@ -1,0 +1,268 @@
+---
+title: "Statistical Models"
+author: "Dale Barr"
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+options(tidyverse.quiet = TRUE)
+library("corrr")
+library("tidyverse")
+
+handw <- read_csv("../data/heights_and_weights.csv",
+		  col_types = "dd")
+
+hw_log <- handw %>%
+  mutate(log_height = log(height_in),
+	 log_weight = log(weight_lbs))
+
+my_cov <- .96 * .26 * .65
+my_Sigma <- matrix(c(.26^2, my_cov, 
+		     my_cov, .65^2),
+		   ncol = 2)
+
+new_humans <- MASS::mvrnorm(500, 
+			    c(height_in = 4.11, weight_lbs = 4.74),
+			    my_Sigma) %>%
+  exp() %>% # back-transform from log to inches and pounds
+  as_tibble() %>% # make tibble for plotting
+  mutate(type = "simulated") # tag them as simulated
+
+## combine real and simulated datasets
+## handw is variable containing data from heights_and_weights.csv
+alldata <- bind_rows(handw %>% mutate(type = "real"), 
+		     new_humans)
+
+.ss <- hw_log %>%
+  summarise(.mh = mean(log_height),
+	    .mw = mean(log_weight),
+	    .sh = sd(log_height),
+	    .sw = sd(log_weight))
+
+.rho_xy <- cor(hw_log %>% pull(log_height),
+	       hw_log %>% pull(log_weight))
+
+.ctbl <- tribble(~` `, ~IQ, ~`verbal fluency`, ~`digit span`,
+		 "IQ", 1.00, .56, .43,
+		 "verbal fluency", .56, 1.00, -.23,
+		 "digit span", .43, -.23, 1.00)
+
+.pos <- MASS::mvrnorm(500, c(0, 0), matrix(c(1, .6, .6, 1), ncol = 2))
+.neg <- MASS::mvrnorm(500, c(0, 0), matrix(c(1, -.6, -.6, 1), ncol = 2))
+.none <- MASS::mvrnorm(500, c(0, 0), matrix(c(1, 0, 0, 1), ncol = 2))
+
+.mytib <- tibble(
+  relationship = factor(c("negative", "none", "positive"),
+			levels = c("negative", "none", "positive")),
+  data = list(tibble(x = .neg[, 1], y = .neg[, 2]),
+	      tibble(x = .none[ ,1], y = .none[, 2]),
+	      tibble(x = .pos[, 1], y = .pos[, 2]))
+) %>%
+  unnest(data)
+
+set.seed(62)
+
+.poly <- MASS::mvrnorm(300, c(thomas = 0, richard = 0, harriet = 0),
+	      clusterGeneration::genPositiveDefMat(3)$Sigma) %>%
+  as_tibble()
+
+.self <- tibble(me = rnorm(300),
+ 		myself = me)
+```
+
+## relationships
+
+```{r}
+#| label: relationships
+#| echo: false
+#| fig-width: 9
+#| fig-height: 3.5
+ggplot(.mytib, aes(x, y)) +
+  facet_wrap(~ relationship,
+             labeller = "label_both") + 
+  geom_point(alpha = .1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  coord_cartesian(xlim = c(-4, 4), ylim = c(-4, 4))
+```
+
+## multiple relationships
+
+```{r}
+#| label: mult-relationships
+#| echo: false
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: center
+par(bg = 'white', fg = 'black', col = 'black')
+pairs(~ thomas + richard + harriet, .poly)
+```
+
+## the perfect relationship
+
+```{r}
+#| label: me
+#| echo: false
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+ggplot(.self, aes(me, myself)) + 
+  geom_point(color = 'black', alpha = .2)
+```
+
+## today's lecture
+
+- correlations and correlation matrices
+- simulating bivariate data
+- relationship between correlation and regression
+
+## correlation coefficient
+
+Typicaly denoted as $\rho$ (Greek symbol 'rho') or $r$
+
+$-1 \ge r \le 1$
+
+- $r > 0$: positive relationship
+- $r < 0$: negative relationship
+- $r = 0$: no relationship
+
+Estimated using Pearson or Spearman (rank) method 
+
+c- `cor()`, `cor.test()`, `corrr::correlate()`
+
+## assumptions
+
+- relationship between $X$ and $Y$ is *linear*
+- deviations from line of best fit are *normally distributed*
+
+## multiple correlations
+
+For $n$ variables, you have
+
+$$\frac{n!}{2(n - 2)!}$$
+
+unique pairwise relationships, where \(n!\) is the *factorial* of \(n\).
+
+`choose(n, 2)`
+
+```{r}
+choose(6, 2)
+choose(8, 2)
+```
+
+## correlation matrices
+
+```{r}
+#| echo: false
+.ctbl %>%
+    knitr::kable()
+```
+
+`corrr::correlate()`
+
+## covariance matrices
+
+- covariance(X,Y): $\rho_{xy}\sigma_x\sigma_y$
+- covariance(X,X): $\rho_{xx}\sigma_x\sigma_x = \sigma^2$
+
+$\rho_{xy}$: correlation between x, y; $\sigma_x$: sd of x
+
+*A matrix that characterizes the spread of multivariate values.* 
+
+\begin{pmatrix}
+{\sigma_x}^2                & \rho_{xy} \sigma_x \sigma_y \\
+\rho_{yx} \sigma_y \sigma_x & {\sigma_y}^2 \\
+\end{pmatrix}
+
+Usually denoted by $\mathbf{\Sigma}$; Must be *symmetric* and *positive definite*
+
+::: {.notes}
+A variance-covariance matrix characterizes the spread of a multivariate distribution.
+
+Think about variance-covariance matrices as a *close relative to correlation matrices*.
+
+Think about variance-covariance matrices as a *generalization of the notion of standard deviation from univariate to multivariate data*.
+:::
+
+## bivariate distribution
+
+::: {.r-stack}
+<iframe src="https://dalejbarr.github.io/bivariate/index.html" width="420" height="630" style="border: none; background: white;"></iframe>
+:::
+
+## 4x4 matrix
+
+A 4x4 covariance matrix with variables W, X, Y, Z.
+
+\begin{pmatrix}
+\rho_{ww}\sigma_w\sigma_w & \rho_{wx}\sigma_w\sigma_x & \rho_{wy}\sigma_w\sigma_y & \rho_{wz}\sigma_w\sigma_z \\
+\rho_{xw}\sigma_x\sigma_w & \rho_{xx}\sigma_x\sigma_x & \rho_{xy}\sigma_x\sigma_y & \rho_{xz}\sigma_x\sigma_z \\
+\rho_{yw}\sigma_y\sigma_w & \rho_{yx}\sigma_y\sigma_x & \rho_{yy}\sigma_y\sigma_y & \rho_{yz}\sigma_y\sigma_z \\
+\rho_{zw}\sigma_z\sigma_w & \rho_{zx}\sigma_z\sigma_x & \rho_{zy}\sigma_z\sigma_y & \rho_{zz}\sigma_z\sigma_z \\
+\end{pmatrix}
+
+## 4x4 matrix
+
+A 4x4 covariance matrix with variables W, X, Y, Z.
+
+\begin{pmatrix}
+{\sigma_w}^2              & \rho_{wx} \sigma_w\sigma_x & \rho_{wy}\sigma_w\sigma_y & \rho_{wz}\sigma_w\sigma_z \\
+\rho_{xw}\sigma_x\sigma_w & {\sigma_x}^2 & \rho_{xy}\sigma_x\sigma_y & \rho_{xz}\sigma_x\sigma_z \\
+\rho_{yw}\sigma_y\sigma_w & \rho_{yx}\sigma_y\sigma_x & {\sigma_y}^2 & \rho_{yz}\sigma_y\sigma_z \\
+\rho_{zw}\sigma_z\sigma_w & \rho_{zx}\sigma_z\sigma_x & \rho_{zy}\sigma_z\sigma_y & {\sigma_z}^2 \\
+\end{pmatrix}
+
+## diagonal matrix
+
+\begin{pmatrix}
+{\sigma_w}^2 &            0 &            0 &            0 \\
+           0 & {\sigma_x}^2 &            0 &            0 \\
+           0 &            0 & {\sigma_y}^2 &            0 \\
+           0 &            0 &            0 & {\sigma_z}^2 \\
+\end{pmatrix}
+
+## simulating correlated data
+
+To simulate bivariate (or multivariate) data in R, use `MASS::mvrnorm()`.
+
+`mvrnorm(n, mu, Sigma, ...)`
+
+You need the following information:
+
+- means of $X$ and $Y$, $\bar{X}$ and $\bar{Y}$
+- standard deviations of $X$ and $Y$, $\sigma_X$ and $\sigma_Y$.
+- correlation coefficient $\rho_{XY}$.
+
+## simulating bivariate data
+
+::: {.r-stack}
+<iframe src="https://dalejbarr.github.io/bivariate/index.html" width="420" height="630" style="border: none; background: white;"></iframe>
+:::
+
+# correlation and the GLM
+
+::::{.columns}
+
+:::{.column width="50%"}
+$$Y_i = \beta_0 + \beta_1 X_i + e_i$$
+
+$$e_i \sim N\left(0, \sigma^2\right)$$
+:::
+
+:::{.column width="50%"}
+$$\beta_1 = \rho_{XY}\frac{\sigma_Y}{\sigma_X}$$
+
+$$\beta_0 = \bar{Y} - \beta_1\bar{X}$$
+:::
+
+::::
+
