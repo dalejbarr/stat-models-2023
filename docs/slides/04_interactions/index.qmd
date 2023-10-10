@@ -1,0 +1,382 @@
+---
+title: "Interactions"
+author: Dale Barr
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+    df-print: tibble
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+options(tidyverse.quiet=TRUE)
+library("tidyverse")
+library("lme4")
+
+hgs <- readxl::read_excel("../data/Han_et_al.xlsx") |>
+  mutate(ID = as.integer(ID)) |>
+  select(ID, sex, HGS, F0)
+
+## paste
+.p <- paste0
+
+## .fraction
+.f <- function(x, y) {
+  paste0("\\frac{", x, "}{", y, "}")
+}
+
+## y-bar
+.yb1 <- function(x) {
+  paste0("$\\bar{Y}_{", x, "}$")
+}
+
+.yb2 <- function(x) {
+  paste0("\\bar{Y}_{", x, "}")
+}
+
+## subtraction term
+.st <- function(x, y, bracket = NULL) {
+  if (is.null(bracket)) {
+    paste0(x, " - ", y)
+  } else {
+    paste0(bracket[1], x, " - ", y, bracket[2])
+  }
+}
+
+.rb <- c("(", ")")
+.dr <- c("\\displaystyle\\left(", "\\right)")
+.ds <- c("\\displaystyle\\left[", "\\right]")
+```
+
+# 
+
+"It depends."
+
+*The effect of a predictor variable on the response variable may depend upon
+the value(s) of one or more other predictor variables.*
+
+## Continuous-by-Categorical Interactions
+
+**Do stronger people tend to have lower voices?**
+
+::: aside
+Han, C., Wang, H., Fasolt, V., Hahn, A. C., Holzleitner, I. J., Lao, J., DeBruine, L. M., Feinberg, D. R., & Jones, B. C. (2018). [No evidence for correlations between handgrip strength and sexually dimorphic acoustic properties of voices.](https://doi.org/10.1002/ajhb.23178). *American Journal of Human Biology*, *30*, e23178.
+
+Data: <https://osf.io/na6be/>
+:::
+
+## The Data
+
+```{r}
+#| label: show-hgs
+#| df-print: tibble
+hgs <- readxl::read_excel("../data/Han_et_al.xlsx") |>
+  mutate(ID = as.integer(ID)) |>
+  select(ID, sex, HGS, F0)
+
+hgs
+```
+
+::: aside
+`HGS`: Hand grip strength, `F0`: voice fundamental frequency
+:::
+
+---
+
+```{r}
+ggplot(hgs, aes(F0, HGS)) + 
+  geom_point(colour = "black", size = 3, alpha = .4) +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+---
+
+```{r}
+lm(HGS ~ F0, hgs) |> summary()
+```
+
+---
+
+```{r}
+ggplot(hgs, aes(F0, HGS, color = sex)) + 
+  geom_point(size = 3, alpha = .6) + 
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("red", "green"))
+```
+
+---
+
+$$HGS_i = \beta_0 + \beta_1 F0_i + \beta_2 SEX_i + \beta_3 F0_i SEX_i + e_i$$
+
+$$= \beta_0 + \beta_2 SEX_i + (\beta_1 + \beta_3 SEX_i) F0_i + e_i$$
+
+::: {.r-stack}
+`HGS ~ F0 + sex + F0:sex`
+:::
+
+::: {.r-stack}
+`HGS ~ F0 * sex`
+:::
+
+- `SEX`: 0 = female, 1 = male
+
+- female: $\beta_0 + \beta_1 F0_i$
+- male: $\beta_0 + \beta_2 + (\beta_1 + \beta_3) F0_i$
+
+## Dummy Coding
+
+```{r}
+hgs2 <- hgs |>
+  mutate(sex_male = if_else(sex == "male", 1, 0))
+
+## double check
+hgs2 |> distinct(sex, sex_male)
+```
+
+## Analysis
+
+```{r}
+lm(HGS ~ sex_male * F0, hgs2) |> summary() 
+```
+
+# Categorical-by-Categorical Interactions
+  
+## Factorial designs
+
+- Used to address a question involving more than one factor that can influence a DV, with each factor acting alone *or in combination with other factors*
+
+  - What are the effects of cognitive therapy and drug therapy on mood
+    in depressed individuals?
+  - Do male and female students learn better with male or female
+    teachers?
+
+## Full Factorial Designs
+
+- A study has a full factorial design if it has more than one IV and
+  the levels of the IVs are "fully crossed"
+- designs are designated using RxC (row-by-column) format
+- *cell:* unique combination of the levels of the factors
+
+![](img/factorial.png){fig-align="center"}
+
+## Factorial Plots and Interpretation
+
+![](img/scenarios.png){fig-align="center"}
+
+## Effects in Factorial Designs
+
+- Main Effects: tests of /marginal means/
+    - $H_0: \mu_{A_1} = \mu_{A_2}$
+    - $H_0: \mu_{B_1} = \mu_{B_2}$
+
+- Simple Effects: effect of factor at level of other
+    - eff of $B$ at $A_1$, $H_0: \mu_{A_1B_1} = \mu_{A_1B_2}$
+    - eff of $B$ at $A_2$, $H_0: \mu_{A_2B_1} = \mu_{A_2B_2}$
+
+- Interaction: equivalence of simple effects
+    - $H_0: \mu_{A_1B_2}-\mu_{A_1B_1} = \mu_{A_2B_2}-\mu_{A_2B_1}$
+
+## A fallacy
+
+> "The percentage of neurons showing cue-related activity increased with training in the mutant mice ($p < 0.05$), but not in the control mice ($p > 0.05$)."
+
+Saying the simple effect is significant in one case but not in another does not imply that the simple effects are statistically different!
+
+::: aside
+Gelman, A., & Stern, H. (2012). [The difference between "significant" and "not significant" is not itself statistically significant.](https://amstat.tandfonline.com/doi/abs/10.1198/000313006X152649#.XbAog_fTXeQ) *The American Statistician*, *60*, 328--331.
+
+Nieuwenhuis, S., Forstmann, B. U., & Wagenmakers, E. J. (2011). [Erroneous analyses of interactions in neuroscience: a problem of significance.](https://www.nature.com/articles/nn.2886?draft=collection) *Nature Neuroscience*, *14*, 1105-1107.
+:::
+
+# Coding categorical predictors
+
+---
+
+::: {.r-stack}
+```{r}
+#| echo: false
+tribble(~Coding, ~A_1, ~A_2,
+	  "Treatment (dummy)", "$0$", "$1$",
+	  "Sum",               "$-1$", "$1$",
+	  "Deviation",
+	  .p("$", "-", .f(1, 2), "$"),
+	  .p("$", .f(1, 2), "$")) |>
+    knitr::kable(col.names = c("Scheme", "$A_1$", "$A_2$"),
+	  align = "lrrr") ##|>
+    ##  kableExtra::kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+:::
+
+Choice of a coding scheme impacts interpretation of:
+
+1. the intercept term; and
+2. the interpretation of the tests for all but the highest-order effects and interactions in a factorial design.
+
+## {.smaller}
+
+```{r}
+#| echo: false
+tribble(~term, ~treatment, ~sum, ~deviation,
+        "$\\mu$", .yb1("111"), .yb1("..."), .yb1("..."),
+        ## (A) second row
+        "$A$",
+        .p("$", .st(.yb2("211"), .yb2("111")), "$"),
+        .p("$", .f(.st(.yb2("2.."), .yb2("1.."), .rb), 2), "$"),
+        .p("$", .st(.yb2("2.."), .yb2("1..")), "$"),
+        "$B$",
+        .p("$", .st(.yb2("121"), .yb2("111")), "$"),
+        .p("$", .f(.st(.yb2(".2."), .yb2(".1."), .rb), 2), "$"),
+        .p("$", .st(.yb2(".2."), .yb2(".1.")), "$"),
+        "$C$",
+        .p("$", .st(.yb2("112"), .yb2("111")), "$"),
+        .p("$", .f(.st(.yb2("..2"), .yb2("..1"), .rb), 2), "$"),
+        .p("$", .st(.yb2("..2"), .yb2("..1")), "$"),
+        "$AB$",
+        .p("$", .st(.st(.yb2("221"), .yb2("121"), .rb),
+                      .st(.yb2("211"), .yb2("111"), .rb)),
+           "$"),
+        .p("$", .f(.st(.st(.yb2("22."), .yb2("12."), .rb),
+                         .st(.yb2("21."), .yb2("11."), .rb)), 4),
+           "$"),
+        .p("$", .st(.st(.yb2("22."), .yb2("12."), .rb),
+                      .st(.yb2("21."), .yb2("11."), .rb)),
+           "$"),
+        "$AC$",
+        .p("$", .st(.st(.yb2("212"), .yb2("211"), .rb),
+                      .st(.yb2("112"), .yb2("111"), .rb)),
+           "$"),
+        .p("$", .f(.st(.st(.yb2("2.2"), .yb2("1.2"), .rb),
+                         .st(.yb2("2.1"), .yb2("1.1"), .rb)), 4),
+           "$"),
+        .p("$", .st(.st(.yb2("2.2"), .yb2("1.2"), .rb),
+                      .st(.yb2("2.1"), .yb2("1.1"), .rb)),
+           "$"),
+        "$BC$",
+        .p("$", .st(.st(.yb2("122"), .yb2("112"), .rb),
+                      .st(.yb2("121"), .yb2("111"), .rb)),
+           "$"),
+        .p("$", .f(.st(.st(.yb2(".22"), .yb2(".12"), .rb),
+                         .st(.yb2(".21"), .yb2(".11"), .rb)), 4),
+           "$"),
+        .p("$", .st(.st(.yb2(".22"), .yb2(".12"), .rb),
+                      .st(.yb2(".21"), .yb2(".11"), .rb)),
+           "$")) |>
+          knitr::kable(align = "cccc", escape = FALSE)
+# |>
+#  knitr::kable(align = "cccc")  |>
+#  kableExtra::kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+
+## More than 2 levels ($k > 2$)?
+
+Arbitrarily choose one as "baseline".
+
+:::: {.panel-tabset}
+
+### Dummy ($k = 3$)
+
+:::: {.panel-tabset}
+
+#### scheme
+
+|       | `A2v1` | `A3v1` |
+|:------|-------:|-------:|
+| $A_1$ |      0 |      0 |
+| $A_2$ |      1 |      0 |
+| $A_3$ |      0 |      1 |
+
+#### code
+
+```{r}
+#| eval: false
+dat |>
+  mutate(A2v1 = if_else(A == "A2", 1, 0),
+         A3v1 = if_else(A == "A3", 1, 0))
+```
+
+
+::::
+
+### Deviation ($k = 3$)
+
+:::: {.panel-tabset}
+
+#### scheme
+
+|       |    `A2v1`      | `A3v1`         |
+|:------|---------------:|---------------:|
+| $A_1$ | $-\frac{1}{3}$ | $-\frac{1}{3}$ |
+| $A_2$ | $\frac{2}{3}$  | $-\frac{1}{3}$ |
+| $A_3$ | $-\frac{1}{3}$ | $\frac{2}{3}$  |
+
+#### code
+
+target level: $\frac{k - 1}{k}$, otherwise: $-\frac{1}{k}$
+
+```{r}
+#| eval: false
+dat |>
+  mutate(A2v1 = if_else(A == "A2", 2/3, -1/3),
+         A3v1 = if_else(A == "A3", 2/3, -1/3))
+```
+
+::::
+
+::::
+
+## Linear Model Formulas in R
+
+::: {.r-stack}
+`y ~ a * b * c`
+:::
+
+::: {.r-stack}
+is shorthand for
+:::
+
+::: {.r-stack}
+`y ~ a + b + c + a:b + a:c + b:c + a:b:c`
+:::
+
+---
+
+::: {.r-stack}
+when factor $A$ has 3 levels: 
+:::
+
+::: {.r-stack}
+`y ~ (a1 + a2) * b`
+:::
+
+::: {.r-stack}
+is shorthand for
+:::
+
+::: {.r-stack}
+`y ~ a1 + a2 + b + a1:b + a2:b`
+:::
+
+---
+
+::: {.r-stack}
+when $A$ and $B$ have 3 levels:
+:::
+
+::: {.r-stack}
+`y ~ (a1 + a2) * (b1 + b2)`
+:::
+
+::: {.r-stack}
+is shorthand for
+:::
+
+::: {.r-stack}
+`y ~ a1 + a2 + b1 + b2 + a1:b1 + a1:b2 + a2:b1 + a2:b2`
+:::
