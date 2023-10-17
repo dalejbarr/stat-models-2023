@@ -1,0 +1,208 @@
+---
+title: "Linear Mixed-Effects Models"
+author: Dale Barr
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+    df-print: tibble
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+options(tidyverse.quiet=TRUE)
+library("tidyverse")
+library("lme4")
+```
+
+## Overview
+
+- introduction to linear mixed-effects modeling
+- example: sleepstudy data
+  - distinguish complete pooling, no pooling and partial pooling approaches
+- understand the DGP behind multi-level data and estimation with `lme4::lmer()`
+
+## {background-image="scooby_doo_sritchie.png" background-size="contain"}
+
+## Multilevel data
+
+ - All parametric models assume model residuals are IID ("independently and identically distributed")
+ - Data often has 'clusters' of correlated observations due to
+   - natural clustering
+   - multistage sampling
+
+## pros and cons of LMEMs {.smaller}
+
+:::: {.columns}
+
+::: {.column width="47%"}
+**Pros**
+
+- powerful and expressive
+- modeling of continuous & categorical predictors
+- unbalanced/missing data (partial pooling)
+- multiple random factors
+- discrete DVs and/or non-normal distributions
+:::
+
+::: {.column width="47%"}
+**Cons**
+
+- complex
+- estimated iteratively and may not converge!
+:::
+
+:::: 
+
+# Understanding multi-level modeling
+
+## Belenky et al. (2003)
+
+Worked example: Belenky et al. (2003) `sleepstudy` data
+
+![](sleepstudy_article.png){fig-align="center"}
+
+## Belenky et al. (2003)
+
+![](belenky_summary.png){fig-align="center"}
+
+## Belenky et al. (2003)
+
+![](sleepstudy_design.png){fig-align="center"}
+
+::: {.aside}
+*TIB*: time in bed
+:::
+
+## Psychomotor vigilance test
+
+![](psychomotor_vigilance_test.png){fig-align="center"}
+
+## `lme4::sleepstudy` {.smaller}
+
+$Y_{ij} = \beta_0 + \beta_1 X_{ij} + e_{ij}$
+
+but: observations within subject *not* independent
+
+```{r}
+#| output-location: column-fragment
+library("lme4")
+
+ggplot(sleepstudy, aes(Days, Reaction)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_discrete(limits = 0:9) +
+  facet_wrap(~Subject)
+```
+
+## Approaches to ML data
+
+1. complete pooling
+   - ignore dependencies in the data
+2. no pooling
+   - account for dependencies by fitting each subject independently
+3. partial pooling
+   - account for dependencies by explicitly modeling them
+   - fit for each subject informed by the fits for other subjects
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app(url = "https://rstudio-connect.psy.gla.ac.uk/multilevel", height = "700px")
+```
+
+# DGP and estimation
+
+## GLM for sleepstudy
+
+*Level 1:*
+
+$$Y_{ij} = \beta_0 + \beta_1 X_{ij} + e_{ij}$$
+
+*Level 2:*
+
+$$\beta_0 = \gamma_{00} + S_{0i}$$
+
+$$\beta_1 = \gamma_{10} + S_{1i}$$
+
+## Variance Components
+
+$$\left< S_{0i}, S_{1i} \right> \sim N(\left< 0, 0 \right>, \mathbf{\Sigma})$$
+
+$$\mathbf \Sigma = \left( 
+  \begin{array}{cc}
+  {\tau_{00}}^2 & \rho\tau_{00}\tau_{11} \\
+  \rho\tau_{00}\tau_{11} & {\tau_{11}}^2 \\ 
+  \end{array} \right)$$
+
+$$e_{ij} \sim N(0, \sigma^2)$$
+
+## Estimation {.smaller}
+
+```{r}
+#| output-location: column-fragment
+library("lme4")
+
+mod <- lmer(Reaction ~ Days + (Days | Subject), 
+            data = sleepstudy)
+
+summary(mod)
+```
+
+## model syntax
+
+`DV ~ iv1 + iv2 + (iv1 | random_factor)`
+
+```{r}
+#| eval: false
+lmer(Reaction ~ Days + (1 | Subject), sleepstudy) # (1) random intercept
+
+lmer(Reaction ~ Days + (1 + Days | Subject), sleepstudy) # (2) random slope model.
+lmer(Reaction ~ Days + (Days | Subject), sleepstudy) # (3) identical to (2)
+
+lmer(Reaction ~ Days + (1 | Subject) + (0 + Days | Subject)) # (4) zero-covariances
+lmer(Reaction ~ Days + (Days || Subject), sleepstudy) # (5) identical to (4)
+```
+
+## p-values: model comparison {.smaller}
+
+::: {.aside}
+NB: use `REML=FALSE`
+:::
+
+```{r}
+#| output-location: fragment
+mod1 <- lmer(Reaction ~ Days + (Days | Subject),
+             sleepstudy, REML = FALSE)
+mod2 <- lmer(Reaction ~ (Days | Subject),
+             sleepstudy, REML = FALSE)
+
+## or:
+## mod2 <- update(mod1, . ~ . -Days)
+anova(mod1, mod2)
+```
+
+## p-values: t-as-z
+
+::: {.aside}
+often reported as "Wald $z$"
+:::
+
+```{r}
+#| output-location: fragment
+mod <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy, REML = FALSE)
+
+stderr <- sqrt(diag(vcov(mod)))
+tvals <- fixef(mod) / stderr
+
+2 * (1 - pnorm(abs(tvals)))
+```
+
+
