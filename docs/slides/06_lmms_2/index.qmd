@@ -1,0 +1,200 @@
+---
+title: "Linear Mixed-Effects Models"
+author: Dale Barr
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+    df-print: tibble
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+options(tidyverse.quiet=TRUE)
+library("tidyverse")
+library("lme4")
+
+.p <- paste0
+
+## .fraction
+.f <- function(x, y) {
+  paste0("\\frac{", x, "}{", y, "}")
+}
+```
+
+## Model specification
+
+- specifying fixed effects
+- specifying random effects
+
+## Categorical predictors
+
+- Recommendation: Make your own, don't rely on R defaults. Why?
+  - model comparison doesn't work with variables of type `factor`
+  - defaults don't support ANOVA-style interpretation
+
+## LMEM versus t-test {.smaller}
+
+> You have run a study looking at the effects of alcohol consumption on simple reaction time. Data is stored in in the tables `subjects` and `simple_rt`. Subjects (`sub`) were randomly assigned to one of two groups (`cond`). One group drank alcohol before performing the task, while the other had a placebo drink.
+
+> As a dependent variable, you measured how quickly each subject pressed a button in response to a flashing light (`RT`, in milliseconds). Each subject provided 8 measurements. Remove data from subjects S01 and S11 before analysis.
+
+## $t$-test on subject means (1) {.smaller}
+
+[simple_rt.zip](simple_rt.zip)
+
+```{r}
+#| output-location: column-fragment
+library("tidyverse")
+
+subjects <- read_csv("simple_rt/subjects.csv",
+                     col_types = "icc",
+                     progress = FALSE)
+
+simple_rt <- read_csv("simple_rt/simple_rt.csv",
+                      col_types = "icci",
+                      progress = FALSE)
+
+combined <- subjects %>%
+  filter(sub != "S01",
+         sub != "S11") %>%
+  inner_join(simple_rt, "sub") %>%
+  select(sub, cond, RT)
+
+subj_means <- combined %>%
+  group_by(sub, cond) %>%
+  summarise(mean_RT = mean(RT),
+            .groups = "drop")
+
+subj_means
+```
+
+## t-test on subject means (2) {.smaller}
+
+```{r}
+#| output-location: column-fragment
+t.test(mean_RT ~ cond,
+       subj_means, var.equal = TRUE)
+```
+
+## Random-intercepts LMEM
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+**Level 1:**
+
+$$Y_{ij} = \beta_0 + \beta_1 X_{ij} + e_{ij}$$
+
+**Level 2:**
+
+$$\beta_0 = \gamma_{00} + S_{0i}$$
+
+$$\beta_1 = \gamma_{10}$$
+
+:::
+
+::: {.column width="40%"}
+
+**Variance Components**
+
+$$S_{0i} \sim N \left( 0, {\tau_{00}}^2 \right)$$
+
+$$e_{ij} \sim N \left( 0, \sigma^2 \right)$$
+
+:::
+
+::::
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app(url = "https://rstudio-connect.psy.gla.ac.uk/icc", height = "700px")
+```
+
+## 
+
+For multi-level data, random-intercepts linear mixed-effects modeling can replace these analyses:
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**between-subjects**
+
+- one-sample t-test
+- independent samples t-test
+- one-way ANOVA
+:::
+
+::: {.column width="50%"}
+**within/mixed designs** 
+
+- paired samples t-test
+- repeated-measures one-way ANOVA
+- fully-within factorial ANOVA
+- mixed-design ANOVA
+  
+*NB: one obs per factor/cell*
+:::
+
+::::
+
+## Rules for random effects (1)
+
+Always include random intercepts for any random factor (e.g.,
+subjects) where you have multiple observations on the DV.
+
+`Y ~ (1 | subject)`
+
+Do I also need a random slope for factor `A`?
+
+1) `A` is within-subjects
+2) multiple observations per level of `A`
+
+`Y ~ A + (1 + A | subject)`
+
+## Rules for random effects (2)
+
+What random slopes do I need for interaction ABC?
+
+- identify highest-order combination of within factors
+- if you have multiple observations per level of that factor / per
+  cell of those factors, then you need a random slope for that factor
+  / interaction of factors
+
+## Coding factorial predictors
+
+```{r}
+#| echo: false
+
+tribble(~Coding, ~A_1, ~A_2,
+        "Treatment (dummy)", "\\(0\\)", "\\(1\\)",
+        "Sum",               "\\(-1\\)", "\\(1\\)",
+        "Deviation",
+        .p("\\(", "-", .f(1, 2), "\\)"),
+        .p("\\(", .f(1, 2), "\\)")) %>%
+  knitr::kable(format = "html", col.names = c("Scheme", "\\(A_1\\)",
+                                              "\\(A_2\\)"),
+               align = "lrrr")  %>%
+  kableExtra::kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+
+Choice of a coding scheme impacts interpretation of:
+
+1. the intercept term; and
+2. the interpretation of the tests for all but the highest-order effects and interactions in a factorial design.
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app(url = "https://rstudio-connect.psy.gla.ac.uk/factorial", height = "700px")
+```
