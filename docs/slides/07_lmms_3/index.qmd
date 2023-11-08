@@ -1,0 +1,331 @@
+---
+title: "Linear Mixed-Effects Models (3)"
+author: Dale Barr
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+    df-print: tibble
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+options(tidyverse.quiet=TRUE)
+library("tidyverse")
+library("lme4")
+library("funfact")
+
+three_way_mixed <- function() {
+  my_design <- list(ivs = c(A = 2, B = 2, C = 2),
+                    n_item = 16,
+                    between_subj = sample(LETTERS[1:3], 1))
+
+  dat <- sim_norm(my_design, 8, params = gen_pop(my_design, 8)) %>%
+    as_tibble() %>%
+    select(subj_id, A, B, C, DV = Y) %>%
+    sample_n(nrow(.))
+
+  list(my_design, dat)
+}
+
+three_way_mixed_both <- function() {
+  n_subj <- 16L
+  n_item <- 16L
+  if (sample(c(TRUE, FALSE), 1L)) {
+    n_subj <- 8L
+  } else {
+    n_item <- 8L
+  }
+  my_design <- c(list(ivs = c(A = 2, B = 2, C = 2),
+                      n_item = n_item))
+
+  dat <- sim_norm(my_design, n_subj, params = gen_pop(my_design, n_subj)) %>%
+    as_tibble() %>%
+    select(subj_id, item_id, A, B, C, DV = Y) %>%
+    sample_n(nrow(.))
+
+  list(my_design, dat)  
+}  
+
+set.seed(1451)
+dat1 <- three_way_mixed()[[2]]
+dat2 <- three_way_mixed_both()[[2]]
+```
+
+## overview
+
+- generalizing to subjects and stimuli
+  - dealing with "crossed" random factors
+
+- random effects in complex designs
+
+- non-convergence and model validation
+
+## Language-as-fixed-effect fallacy
+
+- Psycholinguistic experiments sample language materials as well as subjects
+- Language stimuli should random, not fixed factor
+- Clark's suggestion: $F'$, min-$F'$
+- Modern solution: Linear-mixed effects with crossed random factors of subjects and stimuli
+
+::: {.aside}
+Baayen, R. H., Davidson, D. J., & Bates, D. M. (2008). [Mixed-effects modeling with crossed random effects for subjects and items.](https://doi.org/10.1016/j.jml.2007.12.005) *Journal of Memory and Language*, *59*, 390-412.
+
+Clark, H. H. (1973). [The language-as-fixed-effect fallacy: A critique of language statistics in psychological research](https://doi.org/10.1016/S0022-5371(73)80014-3). *Journal of Verbal Learning and Verbal Behavior*, *12*, 335-359.
+:::
+
+## Crossed random factors {.smaller}
+
+:::: {.columns}
+
+::: {.column width="40%"}
+
+```{r}
+#| echo: false
+subj <- tibble(subj_id = 1:4, list_id = c(1:2, 2:1))
+subj
+```
+
+```{r}
+#| echo: false
+lists <- tibble(list_id = rep(1:2, each = 4),
+                stim_id = rep(LETTERS[1:4], 2),
+                condition = rep(c("treatment", "control",
+                                  "control", "treatment"),
+                                each = 2))
+lists
+```
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: false
+inner_join(subj, lists, "list_id")
+```
+
+:::
+
+::::
+
+## generalizing over encounters {.smaller}
+
+The target of inference in much of psychology and related fields has been misidentified as a population of *subjects* or *stimuli*, when the actual target of inference is a population of events: *encounters*
+
+- readers encountering particular types of words
+- male participants judging attractiveness of female faces, or vice versa
+- gamers encountering particular types of violent games
+- audience members encountering particular types of dance movements
+- insomniacs (versus controls) encountering emotional expressions
+- birds hearing particular types of birdsongs
+
+::: {.aside}
+ Barr, D. J. (2018). Generalizing Over Encounters. In *Oxford Handbook of Psycholinguistics.*
+:::
+
+# specifying random effects
+
+## for factorial designs {.smaller}
+
+for each random factor (subjects/stimuli):
+
+1. identify within-unit factors
+2. check highest-order combination of within-subject factors
+   - **NO pseudoreplications:** no random slopes
+   - **YES pseudoreplications:** all interactions/main effects get slopes
+
+*between-unit factors (or interactions involving them) never get random slopes*
+
+::: {.aside}
+Barr, D. J. (2013). [Random effects structure for testing interactions in linear mixed-effects models](https://doi.org/10.3389/fpsyg.2013.00328). *Frontiers in Psychology*, *4*, 328.
+
+Barr, D. J., Levy, R., Scheepers, C., & Tily, H. J. (2013). [Random effects structure for confirmatory hypothesis testing: Keep it maximal](https://doi.org/10.1016/j.jml.2012.11.001). *Journal of Memory and Language*, *68*, 255-278.
+
+:::
+
+## determining the design from data {.smaller}
+
+three way design, subjects only random factor
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: false
+dat1
+```
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| output-location: fragment
+dat1 |>
+  count(subj_id, A, B, C)
+```
+
+:::
+
+::::
+
+. . .
+
+$A$ is between, $BC$ within, 4 obs / cell
+
+`DV ~ A * B * C + (B * C | subj_id)`
+
+## crossed random factors {.smaller}
+
+`DV ~ A * B * C + (? | subj_id) + (? | item_id)`
+
+```{r}
+#| echo: false
+dat2
+```
+
+## by-subject random effects {.smaller}
+
+```{r}
+#| output-location: fragment
+dat2 |>
+  count(subj_id, A, B, C)
+```
+. . .
+
+`DV ~ A * B * C + (A * B * C | subj_id) + (? | item_id)`
+
+## by-stimulus random effects {.smaller}
+
+```{r}
+#| output-location: fragment
+dat2 |>
+  count(item_id, A, B, C)
+```
+
+. . .
+
+`DV ~ A * B * C + (A * B * C | subj_id) + (1 | item_id)`
+
+# non-convergence and model validation
+
+## non-convergence
+
+When you get a convergence warning you should in the first instance:
+
+- double-check the model specification
+- make sure all predictors are scaled and centred
+
+then re-fit the model. If it still does not converge, seek to reduce the random effects structure, but **proceed with caution.**
+
+Also, try different optimizers (`?lme4::convergence`)
+
+::: {.aside}
+`"singular fit"` is NOT a convergence warning
+:::
+
+## reducing random effects structure {.smaller}
+
+Reducing random effects can help convergence, but the worst thing you
+can do is remove the slope for a theory-critical predictor.
+
+1. Remove random correlations and re-fit
+   - Use `(A * B || subject)`
+
+2. Worst case scenario: effectwise testing, e.g.:
+   - test A using `(A | subject) + (A | stimulus)`
+   - test B using `(B | subject) + (B | stimulus)`
+   - test AB using `(A:B | subject) + (A:B | stimulus)`
+
+## checking assumptions
+
+- linearity
+- homogeneity of variance
+- normality of residuals
+  - outliers
+  - multimodality
+  - other weirdness (skew, etc)
+
+## linearity
+
+- fitted (line) v. observed (points)
+
+```{r}
+#| output-location: column-fragment
+#| fig-height: 8
+mod <- lmer(Reaction ~ Days + 
+              (Days | Subject),
+            sleepstudy, REML = FALSE)
+    
+## fitted values:  fitted(mod)
+## residuals:     residuals(mod)
+ss2 <- sleepstudy |>
+  mutate(fits = fitted(mod))
+
+ggplot(ss2, aes(Days, Reaction)) +
+  geom_line(aes(y = fits,
+                group = Subject)) +
+  geom_point() +
+  facet_wrap(~Subject)
+```
+
+## homogeneity of variance
+
+```{r}
+#| output-location: column-fragment
+#| fig-height: 8
+n_obs <- 200L
+dat3 <- tibble(
+  cond = rep(c("A", "B"), 
+             each = n_obs),
+  Y = c(rnorm(n_obs, 0, 100),
+        rnorm(n_obs, 0, 50)))
+
+ggplot(dat3, aes(cond, Y)) +
+  geom_violin() +
+  geom_jitter(alpha = .2)
+```
+
+## normality of residuals
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app("https://dalejbarr.shinyapps.io/raw_vs_resids/",
+                   height = "600px")
+```
+
+## visual checks: histogram {.smaller}
+
+```{r}
+#| output-location: column-fragment
+my_resids <- residuals(mod)
+
+## it is a vector, must put into a tibble
+## for ggplot
+rtbl <- tibble(residual = my_resids)
+
+ggplot(rtbl, aes(residual)) +
+  geom_histogram()
+```
+
+## visual checks: quantile-quantile (qq) {.smaller}
+
+```{r}
+#| output-location: column-fragment
+
+## sadly there is no qqplot for ggplot
+## so we use base::qqnorm()
+qqnorm(my_resids)
+```
+
+::: {.aside}
+Vanhove, J. (2018). *Checking the assumptions of your statistical model without getting paranoid.* Preprint at <https://psyarxiv.com/zvawb/>
+:::
