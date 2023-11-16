@@ -1,0 +1,257 @@
+---
+title: "Generalized Linear Mixed Models"
+author: Dale Barr
+institute: University of Glasgow
+title-slide-attributes:
+  data-background-image: ../img/titlescreen.png
+format: 
+  revealjs:
+    code-line-numbers: false
+    df-print: tibble
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+## Overview
+
+1. Introduction to generalized linear (mixed) models
+2. Logistic regression
+3. Worked example (Titanic data)
+
+## Discrete data {.smaller}
+
+- categorical (dichotomous/polychotomous)
+  - type of linguistic structure produced (X, Y, Z)
+  - region viewed in a visual world study
+  - number of items recalled out of N
+  - accurate or inaccurate selection
+  - hired or not hired
+  - Likert scales
+
+- counts (no. opportunities ill-defined)
+  - no. of speech errors in a corpus
+  - no. of turn shifts in a conversation
+  - no. words in a utterance
+
+## Why not treat discrete data as continuous?
+
+- Proportions range between 0 and 1
+- Variance proportional to the mean (expected probability or rate)
+- Spurious interactions due to scaling effects
+
+## Generalized linear models {.smaller}
+
+- Allows use of regular linear regression by projecting the DV onto an
+  appropriate scale
+
+- Key elements of GLMs: 
+  - link function
+  - variance function
+
+| data    | approach            | link  | variance | function                            |
+|:--------|:--------------------|:------|:---------|:------------------------------------|
+| binary  | logistic regression | logit | binomial | `glm()`, `lme4::glmer()`            |
+| count   | Poisson regression  | log   | Poisson  | `glm()`, `lme4::glmer()`            |
+| ordinal | ordinal regression  | logit | binomial | `ordinal::clm()`, `ordinal::clmm()` |
+
+# Logistic regression
+
+## Odds and log odds
+
+|                   |                                                                                                                                     |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| *Bernoulli trial* | An event that has a binary outcome, with one outcome typically referred to as 'success'                                             |
+| *proportion*      | A ratio of successes to the total number of Bernoulli trials, proportion of days of the week that are Wednesday is 1/7 or about .14 |
+| *odds*            | A ratio of successes to non-successes, i.e., odds of a day being Wednesday are 1 to 6, natural odds= 1/6 = .17                      |
+| *log odds*        | The (natural) log of the odds (turns multiplicative effects into additive effects)                                                  |
+
+## Properties of log odds ('logit')
+
+$log\left(\frac{p}{1-p}\right)$ or $log\left(\frac{Y}{N-Y}\right)$
+
+where $p$ is a proportion, $N$ is total trials and $Y$ is observed successes
+
+- Scale goes from \(-\infty\) to \(+\infty\)
+- Scale is symmetric around zero
+- If negative, means that Pr(success)\(<.5\)
+- If positive, Pr(success)\(>.5\)
+
+## Logistic regression
+
+$$\eta = \beta_0 + \beta_1 X$$
+
+- link function: $\eta = log\left(\frac{p}{1-p}\right)$
+
+- inverse link function: $p = \frac{1}{1+exp(-\eta)}$
+
+- getting odds from logit: exp($\eta$)
+
+- variance function (binomial): $np(1-p)$
+
+## 
+
+```{r}
+#| echo: false
+knitr::include_app("https://rstudio-connect.psy.gla.ac.uk/logit/",
+                   height = "700px")
+```
+
+## Estimating logit models
+
+- single-level data, bernoulli trials
+
+```{r}
+#| eval: false
+mod <- glm(DV ~ IV, family = binomial(link = "logit"), ...)
+```
+
+- single-level data, binomial counts
+
+```{r}
+#| eval: false
+mod <- glm(cbind(Y, K) ~ IV, family = binomial(link = "logit"), ...)
+```
+where K = N - Y
+
+- multi-level data: same, but use `lme4::glmer()`
+
+# Worked example: Titanic data
+
+## Titanic dataset
+
+<https://www.kaggle.com/c/titanic>
+
+![](titanic.png)
+
+## import {.smaller}
+
+```{r}
+#| output-location: fragment
+library("tidyverse")
+
+dat <- readxl::read_excel("titanic4.xls")
+glimpse(dat)
+```
+
+## survival by passenger sex
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| output-location: fragment
+
+dat |>
+  count(survived, sex)
+```
+
+:::
+
+::: {.column .fragment width="50%"}
+
+```{r}
+#| output-location: fragment
+dat |>
+  group_by(sex) |>
+  summarise(p = mean(survived),
+            Y = sum(survived),
+            N = n(), .groups="drop")
+```
+
+::: 
+
+::::
+
+## survival by passenger sex (model) {.smaller}
+
+```{r}
+#| output-location: fragment
+mod <- glm(survived ~ sex, binomial(link = "logit"),  dat)
+summary(mod)
+```
+
+## age and survival
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+## lots of NAs
+dat |>
+  count(f = is.na(age))
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| output-location: fragment
+ggplot(dat, aes(age)) +
+  geom_histogram()
+```
+
+:::
+
+::::
+
+## binning the data {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| output-location: fragment
+dat2 <- dat |>
+  filter(!is.na(age)) |>
+  mutate(decade = floor(age / 10) * 10) |>
+  group_by(decade) |>
+  summarise(p_survive = mean(survived),
+            N = n(),
+            .groups = "drop")
+
+dat2
+```
+
+:::
+
+::: {.column .fragment width="50%"}
+
+```{r}
+#| output-location: fragment
+g <- ggplot(dat2, aes(decade, p_survive)) +
+  geom_point(aes(size = N))
+
+g
+```
+
+:::
+
+::::
+
+## estimate {.smaller}
+
+```{r}
+#| output-location: fragment
+mod <- glm(survived ~ age, binomial(link = "logit"), dat)
+summary(mod)
+```
+
+## plot {.smaller}
+
+```{r}
+#| output-location: fragment
+newdat <- tibble(age = seq(0, 80, .2))
+## see ?predict.glm
+my_pred <- predict(mod, newdat, type = "response")
+
+dat3 <- newdat |>
+  mutate(p_survive = my_pred)
+
+g + geom_line(aes(x = age, y = p_survive), data = dat3)
+```
+
