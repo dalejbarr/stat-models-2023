@@ -1,0 +1,299 @@
+#+AUTHOR: Statistical Models
+#+DATE: Psychology, University of Glasgow
+
+#+REVEAL_INIT_OPTIONS: width:1200, height:800, margin: 0.1, minScale:0.2, maxScale:2.5, transition:'fade'
+#+OPTIONS: toc:nil num:nil ^:nil
+#+REVEAL_THEME: black
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Correlation and Regression">
+#+REVEAL_POSTAMBLE: <p> Created by Dale Barr </p>
+#+REVEAL_PLUGINS: (markdown notes)
+#+REVEAL_EXTRA_CSS: ./local.css
+
+#+REVEAL_ROOT: ./reveal.js
+#+REVEAL_HLEVEL: 2
+
+#+REVEAL_TITLE_SLIDE_BACKGROUND: ../img/titlescreen.png
+#+REVEAL_HIGHLIGHT_CSS: %r/plugin/highlight/zenburn.css
+
+#+TITLE: Statistical Models Wrap Up
+#+PROPERTY: header-args:R :session *R* :exports both :results output
+
+* Setup                                                            :noexport:
+
+#+BEGIN_SRC R
+  options(crayon.enabled = FALSE, tidyverse.quiet = TRUE)
+  library("tidyverse")
+#+END_SRC
+
+
+* Overview
+
+1. Odds and ends
+   - Choosing the right approach
+   - Correspondences between GLM / conventional techniques
+   - Multivariate situations
+2. Study tips for the final exam
+
+* Odds and ends
+
+** Choosing the right approach
+
+#+begin_notes
+How do I know what test to use on my data? How do I know whether authors have used the right test?
+#+end_notes
+
+*** What do you want to generalize to?
+
+If there is more than one population (subjects and stimuli), linear mixed-effects modeling is really your only choice
+
+*** What type of data do you have?
+
+- is your dependent variable continuous, binary, count, ordinal?
+- do you have multi-level or single-level data? /REMEMBER: multi-level means multiple measurements on the DV for the same sampling units (subjects, stimuli)/
+- do you have pseudoreplications (multiple measurements on the same DV for the same sampling units under the same conditions)?
+- are your predictors categorical or continuous?
+
+*** four functions to rule them all
+
+1. Is the data single- or multi-level?
+2. Is the response continuous or discrete?
+3. How are the observations distributed?
+
+#+REVEAL_HTML: <br/><br/>
+
+| structure | response  | distrib | R fnc           |
+|-----------+-----------+---------+-----------------|
+| single    | cont      | normal  | =base::lm()=    |
+| single    | cont/disc | various | =base::glm()=   |
+| multi     | cont      | normal  | =lme4::lmer()=  |
+| multi     | cont/disc | various | =lme4::glmer()= |
+
+** Correspondences between GLM / conventional techniques
+
+#+begin_notes
+- you need to know the conventional approaches as well
+  to read the literature of the last 50 years
+- sometimes the conventional approach is all you need (analytic
+  solution, no convergence problems)
+- most conventional techniques assume continuous data, but data in
+  psychology is rarely truly continuous
+#+end_notes
+
+*** note
+
+Most conventional techniques are not built to handle /pseudoreplications/. If you have them, remove them by calculating means for each sampling unit, and perform your test on the means.
+
+But if the source of these pseudoreplications is multiple stimuli over which you would like to generalize, then you /can't/ remove them by calculating means.
+
+*** continuous DV, between IV
+
+*** one-sample t-test
+
+$H_0: \mu = c$, where $c$ is a constant
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+  t.test(y, mu = c)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+  lm(y ~ 1, offset = c)
+#+end_src
+#+REVEAL_HTML: </div>
+
+*** independent samples t-test
+
+$H_0: \mu_1 = \mu_2$ (two-tailed)
+
+$H_0: \mu_1 > \mu_2$ (one-tailed)
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+t.test(a, b)
+
+t.test(y ~ group)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+lm(y ~ group)
+#+end_src
+#+REVEAL_HTML: </div>
+
+*** one-factor ANOVA
+
+For one factor $A$ with $k$ levels:
+
+$H_0: \mu_1 = \ldots = \mu_i = \ldots = \mu_k$
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+  ez::ezANOVA(dv = Y, between = A)
+#+end_src
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+  m1 <- lm(Y ~ A)
+  m2 <- lm(Y ~ 1)
+  anova(m1, m2)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+*** factorial ANOVA
+
+For one factor $A$ with $k$ levels, $B$ with $m$ levels:
+
+$H_0: \mu_{A1} = \ldots = \mu_{Ai} = \ldots = \mu_{Ak}$
+
+$H_0: \mu_{B1} = \ldots = \mu_{Bi} = \ldots = \mu_{Bm}$
+
+$H_0:$ all simple effects of A identical across levels of B (or vice-versa)
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+  ez::ezANOVA(dv = Y, between = .(A, B))
+#+end_src
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+  ## two by two, A + B are deviation or sum coded
+  m_full <- lm(Y ~ A + B + A:B)
+  m_noA <- lm(Y ~ B + A:B)
+  m_noB <- lm(Y ~ A + A:B)
+  m_noAB <- lm(Y ~ A + B)
+
+  anova(m_full, m_noA)
+  anova(m_full, m_noB)
+  anova(m_full, m_noAB)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+*** continuous DV, within IV
+
+*** paired-samples t-test
+
+$H_0: \mu_1 = \mu_2$ (two-tailed)
+
+$H_0: \mu_1 > \mu_2$ (one-tailed)
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+t.test(a, b, paired = TRUE)
+
+## NB: formula version doesn't work
+##     in the 'paired' context!!
+#+end_src
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+  ## reminder: no psuedoreplications!
+  m1 <- lme4::lmer(y ~ group + 
+		     (1 | subject_id))
+
+  m2 <- lme4::lmer(y ~ 1 +
+		     (1 | subject_id))
+
+  anova(m1, m2)
+#+end_src
+#+REVEAL_HTML: </div>
+
+*** one-way anova with repeated measures
+
+For one factor $A$ with $k$ levels:
+
+$H_0: \mu_1 = \ldots = \mu_i = \ldots = \mu_k$
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+  ez::ezANOVA(dv = Y, within = A,
+	      wid = subject_id)
+#+end_src
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+
+#+begin_src R :eval never :exports code
+  ## remember: no pseudoreplications
+  m1 <- lme4::lmer(Y ~ A +
+		     (1 | subject_id))
+
+  m2 <- lme4::lmer(Y ~ 1 +
+		     (1 | subject_id))
+
+  anova(m1, m2)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+*** factorial ANOVA with repeated measures
+
+For one factor $A$ with $k$ levels, $B$ with $m$ levels:
+
+$H_0: \mu_{A1} = \ldots = \mu_{Ai} = \ldots = \mu_{Ak}$
+
+$H_0: \mu_{B1} = \ldots = \mu_{Bi} = \ldots = \mu_{Bm}$
+
+$H_0:$ all simple effects of A identical across levels of B (or vice-versa)
+
+#+REVEAL_HTML: <div class="column" style="float:left; width: 50%">
+#+begin_src R :eval never :exports code
+  ez::ezANOVA(dv = Y, within = .(A, B),
+	      wid = subject_id)
+#+end_src
+#+REVEAL_HTML: </div>
+
+#+REVEAL_HTML: <div class="column" style="float:right; width: 50%">
+#+begin_src R :eval never :exports code
+  ## 2x2, A + B are deviation or sum coded
+  m_full <- lme4::lmer(Y ~ A + B + A:B +
+			 (1 | subject_id))
+
+  m_noA <- update(m_full, . ~ . -A)
+  m_noB <- update(m_full, . ~ . -B)
+  m_noAB <- update(m_full, . ~ . -A:B)
+
+  anova(m_full, m_noA)
+  anova(m_full, m_noB)
+  anova(m_full, m_noAB)
+#+end_src
+
+#+REVEAL_HTML: </div>
+
+** Multivariate situations
+
+What do you do when you have more than one DV?
+
+#+begin_notes
+- DVs are correlated, so tests are not independent
+- there are proper multivariate tests (MANOVA) but complex and have limitations
+#+end_notes
+
+/solution/: fit separate univariate models, one for each DV,
+correcting for the familywise error rate (e.g., Bonferroni)
+
+(see also: multivariable multiple regression)
+
+* Final exam
+
+https://rstudio-connect.psy.gla.ac.uk/exam-practice
+
+- Don't leave errors in your code, check all validation tests
+- Don't wait until the last minute to upload your assignment
+- Be familiar with Moodle (formative 5)
+  
+- How to study?
+  - watch out for the 'illusion of understanding'
+  - use teams for further Q&A
+
+- online Q&A (recorded) on Tuesday (Nov 22nd) 10am
+  (use formative review link)
